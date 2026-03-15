@@ -5,7 +5,7 @@
 <br />
 <img src="https://img.shields.io/github/last-commit/imsyy/DailyHotApi" alt="last commit"/>
  <img src="https://img.shields.io/github/languages/code-size/imsyy/DailyHotApi" alt="code size"/>
- <img src="https://img.shields.io/docker/image-size/imsyy/dailyhot-api" alt="docker-image-size"/>
+ <img src="https://img.shields.io/badge/docker-ghcr.io%2Fimsyy%2Fdailyhot--api-blue" alt="ghcr.io"/>
 <img src="https://github.com/imsyy/DailyHotApi/actions/workflows/docker.yml/badge.svg" alt="Publish Docker image"/>
 <img src="https://github.com/imsyy/DailyHotApi/actions/workflows/npm.yml/badge.svg" alt="Publish npm package"/>
 </div>
@@ -124,7 +124,7 @@ serveHotApi(3000);
 
 ### 一键部署（Docker Compose 拉取）
 
-仅需拉取镜像与配置文件即可完成部署，无需本地构建。镜像由 GitHub Actions 在 **push 到 main** 或 **发布 Release** 时自动构建并推送至 Docker Hub / GHCR。
+仅需拉取镜像与配置文件即可完成部署，无需本地构建。镜像由 GitHub Actions 在 **push 到 main** 或 **发布 Release** 时自动构建并推送至 **GitHub Container Registry (ghcr.io)**。
 
 **步骤：**
 
@@ -143,9 +143,7 @@ docker compose up -d
 
 访问 `http://<你的服务器IP>:6688` 即可。日志目录为 `./logs`，可通过 `docker compose logs -f` 查看输出。
 
-**使用 GitHub Container Registry 镜像：** 编辑 `docker-compose.yml`，将 `image: imsyy/dailyhot-api:latest` 改为 `image: ghcr.io/imsyy/dailyhot-api:latest`。
-
-**维护者：** 若 fork 本仓库并希望自动构建并推送镜像，需在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置 `DOCKER_USERNAME` 与 `DOCKER_PASSWORD`（Docker Hub 凭证）。推送至 `main` 或发布 Release 后将自动构建并推送 `latest` / 版本标签。
+**维护者：** 推送至 `main` 或发布 Release 后，将自动构建并推送镜像至 `ghcr.io/<你的用户名>/dailyhot-api`，无需配置 Docker Hub 等额外凭证。
 
 ### Docker 部署（其他方式）
 
@@ -154,8 +152,8 @@ docker compose up -d
 #### 仅拉取镜像运行（不克隆仓库）
 
 ```bash
-docker pull imsyy/dailyhot-api:latest
-docker run --restart always -p 6688:6688 -d imsyy/dailyhot-api:latest
+docker pull ghcr.io/imsyy/dailyhot-api:latest
+docker run --restart always -p 6688:6688 -d ghcr.io/imsyy/dailyhot-api:latest
 ```
 
 #### 本地构建后运行
