@@ -30,7 +30,8 @@
 <details>
 <summary>查看全部接口</summary>
 
-> 示例站点运行于海外服务器，部分国内站点可能存在访问异常，请以实际情况为准
+> 示例站点运行于海外服务器，部分国内站点可能存在访问异常，请以实际情况为准  
+> 关于 **微博（weibo）** 等接口无法访问的说明，见下方 [接口访问说明](#-接口访问说明)
 
 | **站点**         | **类别**     | **调用名称**   | **状态**                                                                                                                                                            |
 | ---------------- | ------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,6 +83,20 @@
 
 </details>
 
+## 📌 接口访问说明
+
+部分接口（尤其是**微博 weibo**）在部署后可能出现无法访问、超时或返回空数据，常见原因如下：
+
+| 原因 | 说明 |
+|------|------|
+| **网络与地域** | 微博等国内站点的接口（如 `weibo.com/ajax/side/hotSearch`）对境外 IP 或非大陆网络有限制，海外服务器部署时容易请求失败。 |
+| **反爬与风控** | 站点会校验 Cookie、Referer、User-Agent 等，或对数据中心 IP、高频请求进行限流/封禁，导致接口暂时不可用。 |
+| **接口变更** | 官方可能更换接口地址或返回结构，未同步更新时会出现解析失败或空数据。 |
+
+**建议**：若需稳定获取微博热搜，请将 API 部署在**大陆境内服务器**，或通过代理使出口 IP 位于大陆；同时合理设置缓存（本项目微博接口默认缓存 60 秒），避免请求过于频繁。
+
+其他国内站点（如知乎、百度、抖音等）在海外环境也可能存在类似情况，以实际部署环境为准。
+
 ## ⚙️ 使用
 
 本项目支持 `Node.js` 调用，可在安装完成后调用 `serveHotApi` 来开启服务器
@@ -107,30 +122,48 @@ serveHotApi(3000);
 
 具体使用说明可参考 [我的博客](https://blog.imsyy.top/posts/2024/0408)，下方仅讲解基础操作：
 
-### Docker 部署
+### 一键部署（Docker Compose 拉取）
+
+仅需拉取镜像与配置文件即可完成部署，无需本地构建。镜像由 GitHub Actions 在 **push 到 main** 或 **发布 Release** 时自动构建并推送至 Docker Hub / GHCR。
+
+**步骤：**
+
+```bash
+# 1. 克隆仓库（或仅下载 docker-compose.yml 与 .env.example）
+git clone https://github.com/imsyy/DailyHotApi.git
+cd DailyHotApi
+
+# 2. 复制环境配置并按需修改（若不需要自定义配置，可执行 touch .env 创建空文件）
+cp .env.example .env
+
+# 3. 拉取镜像并启动
+docker compose pull
+docker compose up -d
+```
+
+访问 `http://<你的服务器IP>:6688` 即可。日志目录为 `./logs`，可通过 `docker compose logs -f` 查看输出。
+
+**使用 GitHub Container Registry 镜像：** 编辑 `docker-compose.yml`，将 `image: imsyy/dailyhot-api:latest` 改为 `image: ghcr.io/imsyy/dailyhot-api:latest`。
+
+**维护者：** 若 fork 本仓库并希望自动构建并推送镜像，需在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置 `DOCKER_USERNAME` 与 `DOCKER_PASSWORD`（Docker Hub 凭证）。推送至 `main` 或发布 Release 后将自动构建并推送 `latest` / 版本标签。
+
+### Docker 部署（其他方式）
 
 > 安装及配置 Docker 将不在此处说明，请自行解决
 
-#### 本地构建
+#### 仅拉取镜像运行（不克隆仓库）
 
 ```bash
-# 构建
-docker build -t dailyhot-api .
-
-# 运行
-docker run --restart always -p 6688:6688 -d dailyhot-api
-# 或使用 Docker Compose
-docker-compose up -d
+docker pull imsyy/dailyhot-api:latest
+docker run --restart always -p 6688:6688 -d imsyy/dailyhot-api:latest
 ```
 
-#### 在线部署
+#### 本地构建后运行
 
 ```bash
-# 拉取
-docker pull imsyy/dailyhot-api:latest
-
-# 运行
-docker run --restart always -p 6688:6688 -d imsyy/dailyhot-api:latest
+docker build -t dailyhot-api .
+docker run --restart always -p 6688:6688 -d dailyhot-api
+# 或使用 Docker Compose（当前仓库内 compose 为拉取模式，本地构建请自行编写 compose 或使用上述 run 命令）
 ```
 
 ### 手动部署
@@ -144,18 +177,20 @@ git clone https://github.com/imsyy/DailyHotApi.git
 cd DailyHotApi
 ```
 
-然后再执行安装依赖
+安装依赖（推荐使用 pnpm）：
 
 ```bash
-npm install
+pnpm install
+# 或 npm install
 ```
 
-复制 `/.env.example` 文件并重命名为 `/.env` 并修改配置
+复制 `/.env.example` 为 `/.env` 并按需修改配置（可选：限流、Redis、缓存时长等见 `.env.example` 内注释）
 
 #### 开发
 
 ```bash
-npm run dev
+pnpm run dev
+# 或 npm run dev
 ```
 
 成功启动后程序会在控制台输出可访问的地址
@@ -163,8 +198,9 @@ npm run dev
 #### 编译运行
 
 ```bash
-npm run build
-npm run start
+pnpm run build
+pnpm run start
+# 或 npm run build && npm run start
 ```
 
 ### pm2 部署
@@ -176,24 +212,12 @@ sh ./deploy.sh
 
 成功启动后程序会在控制台输出可访问的地址
 
-### Vercel 部署
-
-本项目支持通过 `Vercel` 进行一键部署，点击下方按钮或前往 [项目仓库](https://github.com/imsyy/DailyHotApi-Vercel) 进行手动部署
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/imsyys-projects/clone?repository-url=https%3A%2F%2Fgithub.com%2Fimsyy%2FDailyHotApi-Vercel)
-
-### Railway 部署
-
-本项目支持使用 [Railway](https://railway.app/) 一键部署，请先将本项目 fork 到您的仓库中，即可使用一键部署。
-
-### Zeabur 部署
-
-本项目支持使用 [Zeabur](https://zeabur.com/) 一键部署，请先将本项目 fork 到您的仓库中，即可使用一键部署。
-
 ## ⚠️ 须知
 
-- 本项目为了避免频繁请求官方数据，默认对数据做了缓存处理，默认为 `60` 分钟，如需更改，请自行修改配置
-- 本项目部分接口使用了 **页面爬虫**，若违反对应页面的相关规则，请 **及时通知我去除该接口**
+- 本项目为避免频繁请求官方数据，默认对数据做了缓存（默认 60 分钟），可在 `.env` 中通过 `CACHE_TTL` 修改
+- 部分接口（如微博）依赖国内站点接口，在**海外服务器**部署时可能无法访问，详见 [接口访问说明](#-接口访问说明)
+- 部分接口使用 **页面爬虫 / 非公开接口**，若违反对应站点规则，请 **及时通知以去除该接口**
+- 可选：通过环境变量 `RATE_LIMIT_MAX`、`RATE_LIMIT_WINDOW_MS` 开启按 IP 限流，防止滥用
 
 ## 📢 免责声明
 

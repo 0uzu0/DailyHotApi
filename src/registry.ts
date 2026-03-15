@@ -1,6 +1,7 @@
 import { fileURLToPath } from "url";
 import { config } from "./config.js";
 import { Hono } from "hono";
+import type { ListContext, RouterData } from "./types.js";
 import getRSS from "./utils/getRSS.js";
 import path from "path";
 import fs from "fs";
@@ -16,6 +17,20 @@ const routersDirName: string = "routes";
 
 // 排除路由
 const excludeRoutes: Array<string> = [];
+
+// 缓存已加载的路由 handleRoute，避免每次请求都动态 import
+type RouteHandler = (c: ListContext, noCache?: boolean) => Promise<RouterData>;
+const routeHandlerCache = new Map<string, { handleRoute: RouteHandler }>();
+
+async function getHandleRoute(router: string): Promise<RouteHandler> {
+  let cached = routeHandlerCache.get(router);
+  if (!cached) {
+    const mod = await import(`./routes/${router}.js`);
+    cached = { handleRoute: mod.handleRoute };
+    routeHandlerCache.set(router, cached);
+  }
+  return cached.handleRoute;
+}
 
 // 建立完整目录路径
 const routersDirPath = path.join(__dirname, routersDirName);
@@ -67,8 +82,7 @@ for (let index = 0; index < allRoutePath.length; index++) {
     const limit = c.req.query("limit");
     // 是否输出 RSS
     const rssEnabled = c.req.query("rss") === "true";
-    // 获取路由路径
-    const { handleRoute } = await import(`./routes/${router}.js`);
+    const handleRoute = await getHandleRoute(router);
     const listData = await handleRoute(c, noCache);
     // 是否限制条目
     if (limit && listData?.data?.length > parseInt(limit)) {

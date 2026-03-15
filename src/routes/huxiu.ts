@@ -39,7 +39,9 @@ interface HuxiuApiResponse {
   };
 }
 
+// getList 暂未使用 noCache，保留参数以保持与 handleRoute 签名一致
 const getList = async (noCache: boolean) => {
+  void noCache;
   // PC 端接口
   const url = `https://moment-api.huxiu.com/web-v3/moment/feed?platform=www`;
   const res = await axios.get<HuxiuApiResponse>(url, {

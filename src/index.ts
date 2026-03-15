@@ -14,7 +14,9 @@ const serveHotApi: (port?: number) => void = (port: number = config.PORT) => {
     logger.info(`🔗 Local: 👉 http://localhost:${port}`);
     return apiServer;
   } catch (error) {
-    logger.error(error);
+    logger.error(
+      `❌ [ERROR] Failed to start server: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 };
 

@@ -1,9 +1,9 @@
 // getTrending.ts
-import fetch from "node-fetch";
 import * as cheerio from "cheerio";
-import { ListContext } from "../types";
+import axios from "axios";
+import { ListContext } from "../types.js";
 import logger from "../utils/logger.js";
-import {  getCache, setCache } from "../utils/cache.js";
+import { getCache, setCache } from "../utils/cache.js";
 
 /**
  * 定义 Trending 仓库信息的类型
@@ -84,7 +84,7 @@ export async function getTrendingRepos(
   // 先从缓存中取
   const cachedData = await getCache(url);
   if (cachedData) {
-    logger.info("💾 [CHCHE] The request is cached");
+    logger.info("💾 [CACHE] The request is cached");
     return {
       fromCache: true,
       updateTime: cachedData.updateTime,
@@ -110,25 +110,23 @@ export async function getTrendingRepos(
 
   // 添加重试逻辑
   const maxRetries = 3;
-  let lastError;
+  const timeoutMs = 20000;
+  let lastError: Error | unknown;
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-      // 设置超时时间为 20 秒
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-
-      const response = await fetch(url, { 
+      const response = await axios.get<string>(url, {
         headers,
-        signal: controller.signal
+        timeout: timeoutMs,
+        responseType: "text",
+        validateStatus: () => true,
       });
-      clearTimeout(timeout);
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const html = await response.text();
+      const html = response.data;
       // 1. 加载 HTML
       const $ = cheerio.load(html);
       // 2. 存储结果的数组
@@ -182,13 +180,12 @@ export async function getTrendingRepos(
       const data = results;
 
       await setCache(url, { data, updateTime }, ttl);
-      // 返回数据
-      logger.info(`✅ [${response?.status}] 请求成功！`);
+      logger.info(`✅ [${response.status}] 请求成功！`);
       return { fromCache: false, updateTime, data };
-    } catch (error: Error | unknown) {
+    } catch (error: unknown) {
       lastError = error;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(`❌ [ERROR] 第 ${i + 1} 请求失败: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      logger.error(`❌ [ERROR] 第 ${i + 1} 次请求失败: ${errorMessage}`);
       
       // 如果是最后一次重试，则抛出错误
       if (i === maxRetries - 1) {

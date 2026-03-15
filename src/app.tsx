@@ -6,6 +6,7 @@ import { compress } from "hono/compress";
 import { prettyJSON } from "hono/pretty-json";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import logger from "./utils/logger.js";
+import { checkRateLimit } from "./utils/rateLimit.js";
 import registry from "./registry.js";
 import robotstxt from "./robots.txt.js";
 import NotFound from "./views/NotFound.js";
@@ -13,6 +14,29 @@ import Home from "./views/Home.js";
 import Error from "./views/Error.js";
 
 const app = new Hono();
+
+// 安全响应头
+app.use("*", async (c, next) => {
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("X-XSS-Protection", "1; mode=block");
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  await next();
+});
+
+// 可选限流（RATE_LIMIT_MAX > 0 时生效）
+if (config.RATE_LIMIT_MAX > 0) {
+  app.use("*", async (c, next) => {
+    const ip =
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+      c.req.header("x-real-ip") ||
+      "unknown";
+    if (!checkRateLimit(ip)) {
+      return c.json({ code: 429, message: "Too Many Requests" }, 429);
+    }
+    await next();
+  });
+}
 
 // 压缩响应
 app.use(compress());

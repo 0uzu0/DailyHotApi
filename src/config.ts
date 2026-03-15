@@ -18,6 +18,10 @@ export type Config = {
   REDIS_DB: number;
   ZHIHU_COOKIE: string;
   FILTER_WEIBO_ADVERTISEMENT: boolean;
+  /** 限流：每个窗口内最大请求数，0 表示不启用 */
+  RATE_LIMIT_MAX: number;
+  /** 限流：时间窗口（毫秒） */
+  RATE_LIMIT_WINDOW_MS: number;
 };
 
 // 验证并提取环境变量
@@ -57,4 +61,6 @@ export const config: Config = {
   REDIS_DB:  getNumericEnvVariable("REDIS_DB", 0),
   ZHIHU_COOKIE: getEnvVariable("ZHIHU_COOKIE") || "",
   FILTER_WEIBO_ADVERTISEMENT: getBooleanEnvVariable("FILTER_WEIBO_ADVERTISEMENT", false),
+  RATE_LIMIT_MAX: getNumericEnvVariable("RATE_LIMIT_MAX", 0),
+  RATE_LIMIT_WINDOW_MS: getNumericEnvVariable("RATE_LIMIT_WINDOW_MS", 60_000),
 };
