@@ -1,7 +1,13 @@
 import dotenv from "dotenv";
 
-// 环境变量
-dotenv.config();
+// 加载 .env，读取失败时降级为仅使用 process.env
+const result = dotenv.config();
+if (result.error) {
+  const err = result.error as NodeJS.ErrnoException;
+  if (err.code !== "ENOENT") {
+    console.warn("[config] .env 加载异常，将仅使用进程环境变量:", result.error.message);
+  }
+}
 
 export type Config = {
   PORT: number;

@@ -1,12 +1,12 @@
 # 一键部署：直接拉取镜像，无需本地构建
-# 使用前请将 .env.example 复制为 .env 并按需修改（可选）
-# 镜像来源：push main / Release 后自动推送至 GitHub Container Registry (ghcr.io)
+# 环境变量：复制 .env.example 为 .env 并按需修改（可选；未提供时应用使用内置默认值）
+# 镜像：ghcr.io/0uzu0/dailyhotapi
 
 version: "3.8"
 
 services:
   dailyhot-api:
-    image: ghcr.io/imsyy/dailyhot-api:latest
+    image: ghcr.io/0uzu0/dailyhotapi:latest
     container_name: dailyhot-api
     ports:
       - "6688:6688"
